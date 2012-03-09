@@ -27,6 +27,7 @@ Not yet released.
    (this supercedes the fix from #154).
 - #2: adds basic :http:method:`get` access to one level of relationship depth
    for models.
+- #17: use Flask's :attr:`flask.Request.json` to parse incoming JSON requests.
 
 Version 0.9.3
 -------------
@@ -115,6 +116,8 @@ Released on October 9, 2012.
   instances.
 - Fixed issue #79: attempted to access attribute of ``None`` in constructor of
   :class:`APIManager`.
+- Requests that don't have ``Content-Type: application/json`` will cause a
+  :http:statuscode:`400` response.
 
 Version 0.6
 -----------
