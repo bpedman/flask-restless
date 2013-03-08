@@ -1396,6 +1396,8 @@ class API(ModelView):
             self.session.commit()
         except self.validation_exceptions, exception:
             return self._handle_validation_exception(exception)
+        except IntegrityError, error:
+            return jsonify_status_code(400, message=error.message)
 
         # Perform any necessary postprocessing.
         if patchmany:
