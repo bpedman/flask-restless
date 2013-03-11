@@ -24,6 +24,8 @@ Not yet released.
    returning a Boolean.
 - #2: adds basic :http:method:`get` access to one level of relationship depth
    for models.
+- #157: :http:method:`post` requests now receive a response containing all
+   fields of the created instance.
 
 Version 0.9.3
 -------------
