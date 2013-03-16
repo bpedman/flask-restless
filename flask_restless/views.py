@@ -45,7 +45,7 @@ from sqlalchemy.orm import ColumnProperty
 from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.exc import MultipleResultsFound, UnmappedInstanceError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql import func
@@ -254,8 +254,12 @@ def _to_dict(instance, deep=None, exclude=None, include=None,
             (include is not None or include_relations is not None):
         raise ValueError('Cannot specify both include and exclude.') 
     # create a list of names of columns, including hybrid properties
-    columns = [p.key for p in object_mapper(instance).iterate_properties
-               if isinstance(p, ColumnProperty)]
+    try:
+        columns = [p.key for p in object_mapper(instance).iterate_properties
+                if isinstance(p, ColumnProperty)]
+    except UnmappedInstanceError:
+        return instance
+
     for parent in type(instance).mro():
         columns += [key for key,value in parent.__dict__.iteritems()
                     if isinstance(value, hybrid_property)]
@@ -1128,14 +1132,19 @@ class API(ModelView):
         calling function has that responsibility.
 
         """
-        # force unicode primary key name to string; see unicode_keys_to_strings
-        primary_key_name = str(_primary_key_name(model))
-        attrs = unicode_keys_to_strings(attrs)
-        if primary_key_name in attrs:
-            instance = self._get_by(attrs[primary_key_name], model)
-            _assign_attributes(instance, **attrs)
+        if isinstance(attrs, dict):
+            # force unicode primary key name to string;
+            # see unicode_keys_to_strings
+            primary_key_name = str(_primary_key_name(model))
+            attrs = unicode_keys_to_strings(attrs)
+            if primary_key_name in attrs:
+                instance = self._get_by(attrs[primary_key_name], model)
+                _assign_attributes(instance, **attrs)
+            else:
+                instance = model(**attrs)
         else:
-            instance = model(**attrs)
+            # Not a full relation, possibly just an association proxy
+            instance = attrs
         return instance
 
     def _inst_to_dict(self, inst):
