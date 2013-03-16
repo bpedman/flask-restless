@@ -81,6 +81,7 @@ class ProcessingException(Exception):
         self.message = message
         self.status_code = status_code
 
+NO_CHANGE = object()
 
 class AuthenticationException(Exception):
     """Raised when authentication failed for some reason.
@@ -974,7 +975,9 @@ class API(ModelView):
 
         # exceptions are caught by the get() method, which calls this one
         for preprocessor in self.preprocessors['GET_MANY']:
-            data = preprocessor(data)
+            new_data = preprocessor(data)
+            if new_data is not NO_CHANGE:
+                data = new_data
 
         # perform a filtered search
         try:
@@ -1008,7 +1011,9 @@ class API(ModelView):
                               include_relations=self.include_relations)
 
         for postprocessor in self.postprocessors['GET_MANY']:
-            result = postprocessor(result)
+            new_result = postprocessor(result)
+            if new_result is not NO_CHANGE:
+                result = new_result
 
         return jsonpify(result)
 
@@ -1167,7 +1172,9 @@ class API(ModelView):
                 preprocessor(instid)
             result = self._instid_to_dict(instid)
             for postprocessor in self.postprocessors['GET_SINGLE']:
-                result = postprocessor(result)
+                new_result = postprocessor(result)
+                if new_result is not NO_CHANGE:
+                    result = new_result
             return jsonpify(result)
         except ProcessingException, e:
             return jsonify_status_code(status_code=e.status_code,
@@ -1243,7 +1250,9 @@ class API(ModelView):
         # apply any preprocessors to the POST arguments
         try:
             for preprocessor in self.preprocessors['POST']:
-                params = preprocessor(params)
+                new_params = preprocessor(params)
+                if new_params is not NO_CHANGE:
+                    params = new_params
         except ProcessingException, e:
             return jsonify_status_code(status_code=e.status_code,
                                        message=e.message)
@@ -1298,7 +1307,9 @@ class API(ModelView):
 
             try:
                 for postprocessor in self.postprocessors['POST']:
-                    result = postprocessor(result)
+                    new_result = postprocessor(result)
+                    if new_result is not NO_CHANGE:
+                        result = new_result
             except ProcessingException, e:
                 return jsonify_status_code(status_code=e.status_code,
                                            message=e.message)
@@ -1344,14 +1355,18 @@ class API(ModelView):
                 # dictionary indicate a change in the model's field.
                 search_params = data.pop('q', {})
                 for preprocessor in self.preprocessors['PATCH_MANY']:
-                    search_params, data = preprocessor(search_params, data)
+                    result = preprocessor(search_params, data)
+                    if result is not NO_CHANGE:
+                        search_params, data = result
             except ProcessingException, e:
                 return jsonify_status_code(status_code=e.status_code,
                                            message=e.message)
         else:
             try:
                 for preprocessor in self.preprocessors['PATCH_SINGLE']:
-                    data = preprocessor(instid, data)
+                    new_data = preprocessor(instid, data)
+                    if new_data is not NO_CHANGE:
+                        data = new_data
             except ProcessingException, e:
                 return jsonify_status_code(status_code=e.status_code,
                                            message=e.message)
@@ -1404,7 +1419,9 @@ class API(ModelView):
             result = dict(num_modified=num_modified)
             try:
                 for postprocessor in self.postprocessors['PATCH_MANY']:
-                    result = postprocessor(query, result)
+                    new_result = postprocessor(query, result)
+                    if new_result is not NO_CHANGE:
+                        result = new_result
             except ProcessingException, e:
                 return jsonify_status_code(status_code=e.status_code,
                                            message=e.message)
@@ -1412,7 +1429,9 @@ class API(ModelView):
             result = self._instid_to_dict(instid)
             try:
                 for postprocessor in self.postprocessors['PATCH_SINGLE']:
-                    result = postprocessor(result)
+                    new_result = postprocessor(result)
+                    if new_result is not NO_CHANGE:
+                        result = new_result
             except ProcessingException, e:
                 return jsonify_status_code(status_code=e.status_code,
                                            message=e.message)
