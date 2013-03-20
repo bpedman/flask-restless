@@ -772,13 +772,17 @@ class API(ModelView):
         """
         submodel = get_related_model(self.model, relationname)
         subinst_list = []
-        for dictionary in toset or []:
-            if 'id' in dictionary:
-                subinst = self._get_by(dictionary['id'], submodel)
+        for item in toset or []:
+            if isinstance(item, dict):
+                if 'id' in item:
+                    subinst = self._get_by(item['id'], submodel)
+                else:
+                    kw = unicode_keys_to_strings(item)
+                    subinst = _get_or_create(self.session, submodel, **kw)[0]
+                subinst_list.append(subinst)
             else:
-                kw = unicode_keys_to_strings(dictionary)
-                subinst = _get_or_create(self.session, submodel, **kw)[0]
-            subinst_list.append(subinst)
+                # Not a full relation, possibly just an association proxy
+                subinst_list.append(item)
         for instance in query:
             setattr(instance, relationname, subinst_list)
 
