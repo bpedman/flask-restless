@@ -46,15 +46,17 @@ from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.properties import RelationshipProperty as RelProperty
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql import func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import AssociationProxy
 
+from .helpers import get_columns
+from .helpers import get_related_model
+from .helpers import get_relations
 from .helpers import partition
-from .helpers import unicode_keys_to_strings
 from .helpers import session_query
+from .helpers import unicode_keys_to_strings
 from .helpers import upper_keys
 from .search import create_query
 from .search import search
@@ -175,28 +177,6 @@ def _get_or_create(session, model, **kwargs):
     session.add(instance)
     session.flush()
     return instance, True
-
-
-def _get_columns(model):
-    """Returns a dictionary-like object containing all the columns of the
-    specified `model` class.
-
-    """
-    return model._sa_class_manager
-
-
-def _get_related_model(model, relationname):
-    """Gets the class of the model to which `model` is related by the attribute
-    whose name is `relationname`.
-
-    """
-    return _get_columns(model)[relationname].property.mapper.class_
-
-
-def _get_relations(model):
-    """Returns a list of relation names of `model` (as a list of strings)."""
-    cols = _get_columns(model)
-    return [k for k in cols if isinstance(cols[k].property, RelProperty)]
 
 
 def _primary_key_name(model_or_instance):
@@ -702,7 +682,7 @@ class API(ModelView):
         will be used to get or create a model to add.
 
         """
-        submodel = _get_related_model(self.model, relationname)
+        submodel = get_related_model(self.model, relationname)
         if isinstance(toadd, dict):
             toadd = [toadd]
         for dictionary in toadd or []:
@@ -743,7 +723,7 @@ class API(ModelView):
         from each instance of the model in the specified query.
 
         """
-        submodel = _get_related_model(self.model, relationname)
+        submodel = get_related_model(self.model, relationname)
         for dictionary in toremove or []:
             remove = dictionary.pop('__delete__', False)
             if 'id' in dictionary:
@@ -778,7 +758,7 @@ class API(ModelView):
         class method will be used to get or create a model to set.
 
         """
-        submodel = _get_related_model(self.model, relationname)
+        submodel = get_related_model(self.model, relationname)
         subinst_list = []
         for dictionary in toset or []:
             if 'id' in dictionary:
@@ -827,7 +807,7 @@ class API(ModelView):
         specified query.
 
         """
-        relations = _get_relations(self.model)
+        relations = get_relations(self.model)
         tochange = frozenset(relations) & frozenset(params)
         for columnname in tochange:
             if isinstance(params[columnname], list):
@@ -1001,7 +981,7 @@ class API(ModelView):
                                        message='Unable to construct query')
 
         # create a placeholder for the relations of the returned models
-        relations = frozenset(_get_relations(self.model))
+        relations = frozenset(get_relations(self.model))
         # do not follow relations that will not be included in the response
         if self.include_columns is not None:
             cols = frozenset(self.include_columns)
@@ -1135,7 +1115,7 @@ class API(ModelView):
         if inst is None:
             abort(404)
         # create a placeholder for the relations of the returned models
-        relations = frozenset(_get_relations(self.model))
+        relations = frozenset(get_relations(self.model))
         # do not follow relations that will not be included in the response
         if self.include_columns is not None:
             cols = frozenset(self.include_columns)
@@ -1264,8 +1244,8 @@ class API(ModelView):
                 return jsonify_status_code(400, message=msg)
 
         # Getting the list of relations that will be added later
-        cols = _get_columns(self.model)
-        relations = _get_relations(self.model)
+        cols = get_columns(self.model)
+        relations = get_relations(self.model)
 
         # Looking for what we're going to set on the model right now
         colkeys = cols.keys()
