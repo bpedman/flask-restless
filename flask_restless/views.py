@@ -24,7 +24,6 @@
 from __future__ import division
 
 from collections import defaultdict
-import itertools
 import datetime
 import math
 import warnings
@@ -234,12 +233,15 @@ def _to_dict(instance, deep=None, exclude=None, include=None,
     if (exclude is not None or exclude_relations is not None) and \
             (include is not None or include_relations is not None):
         raise ValueError('Cannot specify both include and exclude.')
-    # create an iterable of names of columns, including hybrid properties
-    columns = itertools.chain(
-        (p.key for p in object_mapper(instance).iterate_properties
-            if isinstance(p, ColumnProperty)),
-        (key for key, value in instance.__class__.__dict__.iteritems()
-            if isinstance(value, hybrid_property)))
+
+    # create a list of names of columns, including hybrid properties
+    columns = [p.key for p in object_mapper(instance).iterate_properties
+               if isinstance(p, ColumnProperty)]
+    for parent in type(instance).mro():
+        columns.extend(
+            [key for key,value in parent.__dict__.iteritems()
+             if isinstance(value, hybrid_property)]
+        )
     # filter the columns based on exclude and include values
     if exclude is not None:
         columns = (c for c in columns if c not in exclude)
