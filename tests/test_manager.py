@@ -13,6 +13,8 @@ from unittest2 import skipUnless
 from unittest2 import TestSuite
 
 from flask import json
+from flask.ext.restless.helpers import get_columns
+
 try:
     from flask.ext.sqlalchemy import SQLAlchemy
 except:
@@ -220,7 +222,7 @@ class APIManagerTest(TestSupport):
         return in the JSON representation of instances of the model.
 
         """
-        all_columns = _get_columns(self.Person)
+        all_columns = get_columns(self.Person)
         # allow all
         self.manager.create_api(self.Person, include_columns=None,
                                 url_prefix='/all')
@@ -267,7 +269,7 @@ class APIManagerTest(TestSupport):
         to exclude in the JSON representation of instances of the model.
 
         """
-        all_columns = _get_columns(self.Person)
+        all_columns = get_columns(self.Person)
         # allow all
         self.manager.create_api(self.Person, exclude_columns=None,
                                 url_prefix='/all')

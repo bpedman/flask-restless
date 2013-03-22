@@ -421,7 +421,11 @@ class APIManager(object):
             relation = get_related_model(model, relation_name)
             relation_api_name = apiname + '_' + relation_name
             relation_api_view = API.as_view(relation_api_name, self.session,
-                                            relation, validation_exceptions,
+                                            relation,
+                                            authentication_required_for,
+                                            authentication_function,
+                                            None, None,
+                                            validation_exceptions,
                                             results_per_page,
                                             max_results_per_page,
                                             post_form_preprocessor,

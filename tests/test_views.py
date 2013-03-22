@@ -37,7 +37,7 @@ from sqlalchemy.orm import relationship as rel
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
-from flask.ext.restless.manager import APIManager
+from flask.ext.restless.manager import APIManager, IllegalArgumentError
 from flask.ext.restless.views import _evaluate_functions as evaluate_functions
 from flask.ext.restless.views import _get_or_create
 from flask.ext.restless.views import _to_dict
