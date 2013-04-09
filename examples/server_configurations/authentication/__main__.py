@@ -42,7 +42,7 @@ import os.path
 
 from flask import Flask, render_template, redirect, url_for
 from flask.ext.login import current_user, login_user, LoginManager, UserMixin
-from flask.ext.restless import APIManager, ProcessingException
+from flask.ext.restless import APIManager, AuthenticationException
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.wtf import PasswordField, SubmitField, TextField, Form
 
@@ -107,33 +107,21 @@ def login():
         # you would check username and password here...
         #
         username, password = form.username.data, form.password.data
-        matches = User.query.filter_by(username=username,
-                                       password=password).all()
-        if len(matches) > 0:
-            login_user(matches[0])
-            return redirect(url_for('index'))
-        flash('Username and password pair not found')
+        user = User.query.filter_by(username=username,
+                                    password=password).one()
+        login_user(user)
+        return redirect(url_for('index'))
     return render_template('login.html', form=form)
 
 
 # Step 8: create the API for User with the authentication guard.
-def auth_func(params):
+def auth_func():
     if not current_user.is_authenticated():
-        raise ProcessingException(message='Not authenticated!')
-    return params
+        raise AuthenticationException(message='Not authenticated!')
 
 
-api_manager.create_api(User, preprocessors=dict(GET_SINGLE=[auth_func],
-                                                GET_MANY=[auth_func]))
+api_manager.create_api(User, authentication_required_for=['GET'],
+                       authentication_function=auth_func)
 
 # Step 9: configure and run the application
 app.run()
-
-# Step 10: visit http://localhost:5000/api/user in a Web browser. You will
-# receive a "Not Authorized" response.
-#
-# Step 11: visit http://localhost:5000/login and enter username "example" and
-# password "example". You will then be logged in.
-#
-# Step 12: visit http://localhost:5000/api/user again. This time you will get a
-# response showing the objects in the User table of the database.
